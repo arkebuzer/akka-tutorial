@@ -5,10 +5,21 @@ import com.lightbend.akka.sample.DeviceGroup.{ReplyDeviceList, RequestDeviceList
 import com.lightbend.akka.sample.DeviceManager.RequestTrackDevice
 
 object DeviceGroup {
-def props(groupId: String): Props = Props(new DeviceGroup(groupId))
+  def props(groupId: String): Props = Props(new DeviceGroup(groupId))
 
-final case class RequestDeviceList(requestId: Long)
-final case class ReplyDeviceList(requestId: Long, ids: Set[String])
+  final case class RequestDeviceList(requestId: Long)
+
+  final case class ReplyDeviceList(requestId: Long, ids: Set[String])
+
+  final case class RequestAllTemperatures(requestId: Long)
+  final case class RespondAllTemperatures(requestId: Long, temperatures: Map[String, TemperatureReading])
+
+  sealed trait TemperatureReading
+  final case class Temperature(value: Double) extends TemperatureReading
+  case object TemperatureNotAvailable extends TemperatureReading
+  case object DeviceNotAvailable extends TemperatureReading
+  case object DeviceTimedOut extends TemperatureReading
+
 }
 
 class DeviceGroup(groupId: String) extends Actor with ActorLogging {
@@ -20,7 +31,7 @@ class DeviceGroup(groupId: String) extends Actor with ActorLogging {
   override def postStop(): Unit = log.info("DeviceGroup {} stopped", groupId)
 
   override def receive: Receive = {
-    case trackMsg @ RequestTrackDevice(`groupId`, _) ⇒
+    case trackMsg@RequestTrackDevice(`groupId`, _) ⇒
       deviceIdToActor.get(trackMsg.deviceId) match {
         case Some(deviceActor) ⇒
           deviceActor forward trackMsg
